@@ -1,4 +1,4 @@
-name: eks_apply
+name: eks_ubuntu_apply
 
 on:
   push:
@@ -9,10 +9,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      TF_VAR_aws_region: us-east-1
+      TF_VAR_tf_bucket: ${{ secrets.TF_BUCKET }}
+      TF_VAR_aws_region: ${{ secrets.TF_REGION }}
       # https://cloud-images.ubuntu.com/docs/aws/eks/
-      TF_VAR_image_id: ami-02424b9007c11a4e5
-      TF_VAR_instance_type: t3a.small
+      TF_VAR_image_id: ${{ secrets.TF_VAR_IMAGE_ID }}
+      TF_VAR_instance_type: t3a.medium
       TF_VAR_min_size: 1
       TF_VAR_desired_capacity: 1
       TF_VAR_max_size: 10
@@ -23,8 +24,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: nelonoel/branch-name@v1.0.1
-      - name: Identify branch and env
-        run: echo "Running on branch ${BRANCH_NAME} env ${TF_VAR_env_name}"
+
+      - name: Debug Info
+        run: >
+          echo "BRANCH_NAME=${BRANCH_NAME}";
+          echo "GITHUB_WORKFLOW=${{github.workflow}}";
 
       #TODO: Cache Binaries
       - name: Download kubectl
@@ -69,7 +73,8 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
+          aws-region: ${{env.TF_VAR_aws_region}}
+
       - name: Check AWS authentication
         run: aws sts get-caller-identity
 
@@ -78,4 +83,4 @@ jobs:
 
       - name: Run apply script
         run: ./apply.sh
-        working-directory: eks
+        working-directory: infra/eks-ubuntu
